@@ -84,7 +84,7 @@ impl Vm {
             },
             16 => { // ASSIGN
                 let idx = u8::from_le_bytes([next!(self)]);
-                if let Some(pos) = self.stack.iter().position(|x| x.idx == idx) {
+                if let Some(pos) = self.stack.iter().position(|x| x.idx == idx) { // bad
                     self.stack[pos] = Var::new(idx,self.do_op()?);
                 } else {
                     panic!();
@@ -98,7 +98,7 @@ impl Vm {
             },
             18 => { // GET
                 let idx = u8::from_le_bytes([next!(self)]);
-                if let Some(pos) = self.stack.iter().position(|x| x.idx == idx) {
+                if let Some(pos) = self.stack.iter().position(|x| x.idx == idx) { // bad
                     Ok(self.stack[pos].v.clone()) // this is bad!
                 } else {
                     panic!("uwu");
