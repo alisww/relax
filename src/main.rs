@@ -17,28 +17,27 @@ use bytecode::compiler::*;
 use bytecode::vm::*;
 
 use std::rc::Rc;
+use std::time::*;
 
 fn main() {
-    let og = "var uwu = 0;\n uwu = 2;".to_string();
+    let og = "var n = 0; while (n < 900000000) { n = n + 1; }".to_string();
     println!("Original Expression: {}", og);
     let mut scanner = Scanner::new(og);
     scanner.scan();
     //println!("Tokens: {:?} \n", scanner.tokens);
     let mut parser = Parser::new(scanner.tokens);
     let statements = parser.parse().unwrap();
-    print!("AST: ");
-    print_statements(statements.clone());
+    //print!("AST: {:?}\n",statements);
     let mut compiler = Chunk::new();
     compiler.compile_to_ops(statements);
-    println!("\nOperations: {:?}", compiler.ops);
-    println!("Bytecode: {:?}", compiler.encode_ops());
-/*
-    if let Statement::Expression(expr) = (*statements[0]).clone() {
-        let mut compiler = Chunk::new();
-        compiler.ops = compiler.encode_expr(&expr);
-        println!("Operations: {:?}", compiler.ops);
-        println!("Bytecode: {:?}", compiler.encode_ops());
-        let mut machine = Vm::new(compiler);
-        println!("Result: {:?}",machine.do_op());
-    }*/
+    println!("Operations: {:?}", compiler.ops);
+//    println!("Bytecode: {:?}", compiler.encode_ops());
+    let mut machine = Vm::new(compiler);
+    let now = SystemTime::now();
+    let mut iters = 0;
+    while machine.idx < machine.bytes.len() - 6 {
+        machine.do_op();
+    }
+    println!("{}",now.elapsed().unwrap().as_millis());
+    println!("{:?}",iters);
 }

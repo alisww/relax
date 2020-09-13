@@ -20,14 +20,15 @@ macro_rules! try_sync {
 
 pub struct Parser {
     current: usize,
-    tokens: Vec<Token>
+    tokens: Vec<Token>,
+    current_depth: usize
 }
 
 type ParseResult = Result<Expr,LoxError>;
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Parser{
-        Parser { current: 0, tokens: tokens }
+        Parser { current: 0, tokens: tokens, current_depth: 0 }
     }
 
     pub fn parse(&mut self) -> Result<Vec<Rc<Statement>>,LoxError> {
@@ -229,12 +230,14 @@ impl Parser {
     }
 
     fn block_statement(&mut self) -> Result<Statement,LoxError> {
+        self.current_depth += 1;
         let mut statements: Vec<Rc<Statement>> = Vec::new();
         while !self.check(TokenType::RightBrace) && !self.is_end() {
             statements.push(Rc::new(self.declaration()?));
         }
 
         self.consume(TokenType::RightBrace,"Expected '}' after block".to_string())?;
+        self.current_depth -= 1;
         Ok(Statement::Block(statements))
     }
 
@@ -302,7 +305,7 @@ impl Parser {
         while self.match_t(vec![TokenType::Greater,TokenType::GreaterEqual,TokenType::Less,TokenType::LessEqual]) {
             let op = self.previous();
             let right = self.addition()?;
-            e = Expr::Binary(Rc::new(e),op,Rc::new(right));
+            e = Expr::Logical(Rc::new(e),op,Rc::new(right));
         }
 
         Ok(e)

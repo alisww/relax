@@ -15,6 +15,17 @@ pub enum LoxType {
     //Callable(Box<Callable>)
 }
 
+impl LoxType {
+    pub fn into_owned(&self) -> LoxType {
+        match self {
+            &LoxType::Number(ref n) => LoxType::Number(*n),
+            &LoxType::Boolean(ref b) => LoxType::Boolean(*b),
+            &LoxType::String(ref s) => LoxType::String(s.clone()),
+            _ => panic!("no")
+        }
+    }
+}
+
 impl PartialEq for LoxType {
     fn eq(&self,other: &LoxType) -> bool {
         match (self,other) {

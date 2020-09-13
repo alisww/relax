@@ -3,6 +3,7 @@ use super::token_type::*;
 use super::lox_type::*;
 use super::statements::*;
 use std::rc::Rc;
+use std::collections::HashMap;
 
 trait VecPutAndGetIndex {
     type Item;
@@ -37,6 +38,13 @@ pub enum Operation {
     LesserEqual, // 14
     Var, // 15 declare a variable
     Assign, // 16 Assign a variable
+    Pop, // 17 Pop from the locals stack,
+    Get, // 18 Get value from a variable
+    JumpBackIfFalse, // 19
+    JumpBackIfTrue, // 20
+    JumpIfTrue, // 21
+    JumpIfFalse, // 22
+    NotEquals, // 23,
     Operand(u64) // internally it's an u64, but it can range from u8 up to 64
 }
 
@@ -73,6 +81,13 @@ impl Operation {
             &Operation::LesserEqual => bytes.push(14),
             &Operation::Var => bytes.push(15),
             &Operation::Assign => bytes.push(16),
+            &Operation::Pop => bytes.push(17),
+            &Operation::Get => bytes.push(18),
+            &Operation::JumpBackIfTrue => bytes.push(19),
+            &Operation::JumpBackIfFalse => bytes.push(20),
+            &Operation::JumpIfTrue => bytes.push(21),
+            &Operation::JumpIfFalse => bytes.push(22),
+            &Operation::NotEquals => bytes.push(23),
             &Operation::Operand(ref a) => {
                 if *a < u8::MAX as u64 {
                     bytes.extend_from_slice(&(*a as u8).to_le_bytes())
@@ -89,17 +104,22 @@ impl Operation {
     }
 }
 
+
 #[derive(Debug)]
 pub struct Chunk {
     pub ops: Vec<Operation>,
-    pub constants: Vec<LoxType>
+    pub constants: Vec<LoxType>,
+    var_count: u8,
+    curr_depth: u8
 }
 
 impl Chunk {
     pub fn new() -> Chunk {
         Chunk {
             ops: Vec::new(),
-            constants: Vec::new()
+            constants: Vec::new(),
+            var_count: 0,
+            curr_depth: 0
         }
     }
 
@@ -162,8 +182,29 @@ impl Chunk {
                 ops.extend_from_slice(&self.encode_expr(one));
                 ops.extend_from_slice(&self.encode_expr(two));
             },
+            &Expr::Logical(ref one,ref token, ref two) => {
+                ops.push(match token.token {
+                    TokenType::And => Operation::And,
+                    TokenType::Or => Operation::Or,
+                    TokenType::EqualEqual => Operation::Equals,
+                    TokenType::BangEqual => Operation::NotEquals,
+                    TokenType::Greater => Operation::Greater,
+                    TokenType::GreaterEqual => Operation::GreaterEqual,
+                    TokenType::Less => Operation::Lesser,
+                    TokenType::LessEqual => Operation::LesserEqual,
+                    _ => Operation::Return
+                });
+                ops.extend_from_slice(&self.encode_expr(one));
+                ops.extend_from_slice(&self.encode_expr(two));
+            },
             &Expr::Literal(ref v) => {
                 ops.extend_from_slice(&self.op_const(v.clone()));
+            },
+            &Expr::Variable(ref t) => {
+                if let Some(_idx) = self.constants.iter().position(|x| x == &LoxType::String(t.lexeme.clone())) {
+                    ops.push(Operation::Get);
+                    ops.push(Operation::Operand(_idx as u64)); // idx = u16
+                }
             },
             _ => {}
         }
@@ -172,18 +213,51 @@ impl Chunk {
 
     pub fn encode_statement(&mut self,st: Statement) -> Vec<Operation> {
         let mut ops = Vec::new();
+        ops.reserve(256);
         match st {
             Statement::Expression(e) => ops.extend_from_slice(&self.encode_expr(&e)),
             Statement::Variable(name,e) => {
+                let name_idx = self.set_const(LoxType::String(name.lexeme.clone()));
+                if self.curr_depth > 0 { self.var_count += 1; };
                 ops.push(Operation::Var);
-                let name_idx = self.set_const(LoxType::String(name.lexeme));
-                ops.push(Operation::Operand(name_idx as u64));
+                ops.push(Operation::Operand(name_idx as u64)); // push to stack
                 if let Some(expr) = e {
                     ops.push(Operation::Assign);
-                    ops.extend_from_slice(&self.encode_expr(&expr));
                     ops.push(Operation::Operand(name_idx as u64));
+                    ops.extend_from_slice(&self.encode_expr(&expr));
                 }
             },
+            Statement::Block(statements) => {
+                self.curr_depth += 1;
+                for s in statements {
+                    let new_ops = self.encode_statement((*s).clone());
+                    ops.extend_from_slice(&new_ops);
+                }
+                if self.var_count > 0 {
+                    ops.push(Operation::Pop);
+                    ops.push(Operation::Operand(self.var_count as u64));
+                }
+                self.var_count = 0;
+                self.curr_depth -= 1;
+            },
+            Statement::If(expr,first,else_path) => {
+                let expr_ops = self.encode_expr(&expr);
+                let if_branch_ops = self.encode_statement((*first).clone());
+                ops.push(Operation::JumpIfFalse);
+                ops.extend_from_slice(&expr_ops);
+                ops.push(Operation::Operand((expr_ops.len() + if_branch_ops.len()) as u64));
+                ops.extend_from_slice(&if_branch_ops);
+                if let Some(else_branch) = else_path { ops.extend_from_slice(&self.encode_statement((*else_branch).clone())); };
+            },
+            Statement::While(expr,first) => {
+                let expr_ops = self.encode_expr(&expr);
+                let block_ops = self.encode_statement((*first).clone());
+                println!("{:?}",block_ops);
+                ops.extend_from_slice(&block_ops);
+                ops.push(Operation::JumpBackIfTrue);
+                ops.extend_from_slice(&expr_ops);
+                ops.push(Operation::Operand((expr_ops.len() + block_ops.len() + 2) as u64));
+            }
             _ => {}
         }
 
@@ -193,6 +267,7 @@ impl Chunk {
     pub fn encode_ops(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
         for op in &self.ops {
+    //        println!("{:?}",op);
             bytes.extend_from_slice(&op.to_bytes())
         }
         bytes
@@ -205,3 +280,14 @@ impl Chunk {
         }
     }
 }
+
+
+/*
+while (n < 100) { n = n + 1; }
+block = ASSIGN INDEX CONSTANT INDEX
+block = 4 bytes
+JUMP_BACK_IF_FALSE LESSER GET VAR_INDEX CONSTANT INDEX OFFSET
+if n < 100, jump back 4 bytes + amount of bytes in jump expr
+
+
+*/
