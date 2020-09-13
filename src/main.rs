@@ -15,6 +15,7 @@ use syntax::statements::*;
 use syntax::statements::print_statements;
 use bytecode::compiler::*;
 use bytecode::vm::*;
+use std::panic;
 
 use std::rc::Rc;
 use std::time::*;
@@ -31,13 +32,7 @@ fn main() {
     let mut compiler = Chunk::new();
     compiler.compile_to_ops(statements);
     println!("Operations: {:?}", compiler.ops);
-//    println!("Bytecode: {:?}", compiler.encode_ops());
-    let mut machine = Vm::new(compiler);
-    let now = SystemTime::now();
-    let mut iters = 0;
-    while machine.idx < machine.bytes.len() - 6 {
-        machine.do_op();
-    }
-    println!("{}",now.elapsed().unwrap().as_millis());
-    println!("{:?}",iters);
+    let time = SystemTime::now();
+    panic::catch_unwind(|| { interpret(compiler.encode_ops(),compiler.constants); });
+    println!("Ran for: {}",time.elapsed().unwrap().as_millis());
 }

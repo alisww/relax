@@ -39,6 +39,7 @@ impl PartialEq for LoxType {
 }
 
 impl PartialOrd for LoxType {
+    #[inline(never)]
     fn partial_cmp(&self,other: &LoxType) -> Option<Ordering> {
         match (self,other) {
             (&LoxType::String(ref s),&LoxType::String(ref o)) => (s.partial_cmp(o)),
