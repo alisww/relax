@@ -21,7 +21,7 @@ use std::rc::Rc;
 use std::time::*;
 
 fn main() {
-    let og = "var n = 0; while (n < 900000000) { n = n + 1; }".to_string();
+    let og = "var n = 0; while (n < 10) { n = n + 1; } var b = 0;".to_string();
     println!("Original Expression: {}", og);
     let mut scanner = Scanner::new(og);
     scanner.scan();
@@ -32,6 +32,7 @@ fn main() {
     let mut compiler = Chunk::new();
     compiler.compile_to_ops(statements);
     println!("Operations: {:?}", compiler.ops);
+  //  println!("{:?}",compiler.encode_ops());
     let time = SystemTime::now();
     panic::catch_unwind(|| { interpret(compiler.encode_ops(),compiler.constants); });
     println!("Ran for: {}",time.elapsed().unwrap().as_millis());

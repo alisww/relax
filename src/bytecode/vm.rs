@@ -79,7 +79,7 @@ const OPS: [fn(v: &Vec<u8>, constants: &Vec<LoxType>) -> VmRes; 24] = [
     op!(not_equals_op)
 ];
 
-static mut stack: Vec<Var> = Vec::new(); // sorry, steve klabnik!
+static mut stack: Vec<Var> = Vec::new();
 
 fn stack_lookup(_idx: u8) -> Option<usize> {
     unsafe { stack.iter().position(|x| x.idx == _idx) }
