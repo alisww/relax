@@ -21,30 +21,30 @@ impl<T> VecPutAndGetIndex for Vec<T> {
 
 #[derive(Debug,Clone,Copy)]
 pub enum Operation {
-    Return, // 0
-    Constant, // 1
-    LongConstant, // 2
-    Add, // 3
-    Subtract, // 4
-    Multiply, // 5
-    Divide, // 6
-    Negate, // 7
-    And, // 8
-    Or, // 9
-    Equals, // 10
-    Greater, // 11
-    GreaterEqual, // 12
-    Lesser, // 13
-    LesserEqual, // 14
-    Var, // 15 declare a variable
-    Assign, // 16 Assign a variable
-    Pop, // 17 Pop from the locals stack,
-    Get, // 18 Get value from a variable
-    JumpBackIfFalse, // 19
-    JumpBackIfTrue, // 20
-    JumpIfTrue, // 21
-    JumpIfFalse, // 22
-    NotEquals, // 23,
+    Return, // 0 🔚
+    Constant, // 1 🧱
+    LongConstant, // 2 🔧
+    Add, // 3 ➕
+    Subtract, // 4 ➖
+    Multiply, // 5 ✖️
+    Divide, // 6 ➗
+    Negate, // 7 ⁉️
+    And, // 8 ✨
+    Or, // 9 🥺
+    Equals, // 10 😐
+    Greater, // 11 😌
+    GreaterEqual, // 12 📈
+    Lesser, // 13 😔
+    LesserEqual, // 14 📉
+    Var, // 15 declare a variable 🛹
+    Assign, // 16 Assign a variable ✍️
+    Pop, // 17 Pop from the locals stack, 📖
+    Get, // 18 Get value from a variable 📚
+    JumpBackIfFalse, // 19 🔙
+    JumpBackIfTrue, // 20 ↔️
+    JumpIfTrue, // 21 ↗️
+    JumpIfFalse, // 22 ↘️
+    NotEquals, // 23, 😭
     Operand(u64) // internally it's an u64, but it can range from u8 up to 64
 }
 

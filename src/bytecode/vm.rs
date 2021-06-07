@@ -91,6 +91,7 @@ pub fn interpret(bytes: Vec<u8>,constants: Vec<LoxType>) {
             do_op(&bytes,&constants);
         }
     }
+    unsafe { println!("Stack after run: {:?}",stack) };
 }
 
 fn do_op(bytes: &Vec<u8>, constants: &Vec<LoxType>) -> VmRes {

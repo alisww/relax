@@ -15,6 +15,7 @@ use syntax::statements::*;
 use syntax::statements::print_statements;
 use bytecode::compiler::*;
 use bytecode::vm::*;
+use bytecode::emoji;
 use std::panic;
 
 use std::rc::Rc;
@@ -32,8 +33,11 @@ fn main() {
     let mut compiler = Chunk::new();
     compiler.compile_to_ops(statements);
     println!("Operations: {:?}", compiler.ops);
-  //  println!("{:?}",compiler.encode_ops());
-    let time = SystemTime::now();
-    panic::catch_unwind(|| { interpret(compiler.encode_ops(),compiler.constants); });
-    println!("Ran for: {}",time.elapsed().unwrap().as_millis());
+    let s = emoji::encode_ops(compiler.ops.clone());
+    println!("{}",s);
+    println!("{:?}",emoji::decode_ops(s.clone()));
+    println!("{:?}",compiler.encode_ops());
+    // let time = SystemTime::now();
+    panic::catch_unwind(|| { interpret(emoji::decode_ops(s),compiler.constants); });
+    // println!("Ran for: {}",time.elapsed().unwrap().as_millis());
 }
